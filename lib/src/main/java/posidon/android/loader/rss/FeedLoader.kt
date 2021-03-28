@@ -153,10 +153,11 @@ object FeedLoader {
                             name.equals("title", ignoreCase = true) -> title = getText(parser)
                             name.equals("link", ignoreCase = true) -> link = getText(parser)
                             name.equals("pubDate", ignoreCase = true) -> {
-                                val text = getText(parser).trim()
+                                val text = getText(parser)
                                     .substringAfter(',')
                                     .replace("GMT", "+0000")
                                     .replace("EDT", "+0000")
+                                    .trim()
                                 time = try {
                                     SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT).parse(text)!!
                                 } catch (e: Exception) {
