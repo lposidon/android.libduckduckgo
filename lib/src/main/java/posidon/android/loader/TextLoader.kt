@@ -8,14 +8,16 @@ import kotlin.concurrent.thread
 
 object TextLoader {
 
-    fun loadText(
-        url: String,
-        onFinished: (string: String) -> Unit
-    ) = thread {
+    inline fun load(url: String, crossinline onFinished: (String) -> Unit): Thread = load(URL(url), onFinished)
+
+    inline fun load(
+        url: URL,
+        crossinline onFinished: (String) -> Unit
+    ): Thread = thread {
         try {
             val builder = StringBuilder()
             var buffer: String?
-            val bufferReader = BufferedReader(InputStreamReader(URL(url).openStream()))
+            val bufferReader = BufferedReader(InputStreamReader(url.openStream()))
             while (bufferReader.readLine().also { buffer = it } != null) {
                 builder.append(buffer).append('\n')
             }
