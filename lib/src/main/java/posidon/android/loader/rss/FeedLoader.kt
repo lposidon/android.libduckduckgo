@@ -138,6 +138,9 @@ object FeedLoader {
                             if (title != null && link != null) {
                                 if (isIncluded(link!!, title!!, time!!)) {
                                     items.add(FeedItem(title!!, link!!, img, time!!, source))
+                                    if (maxItems != 0 && items.size >= maxItems) {
+                                        return@use
+                                    }
                                 }
                             }
                             title = null
@@ -162,7 +165,7 @@ object FeedLoader {
                                     SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT).parse(text)!!
                                 } catch (e: Exception) {
                                     e.printStackTrace()
-                                    try { SimpleDateFormat("dd MMM yyyy HH:mm:ss X", Locale.ROOT).parse(text)!! }
+                                    try { SimpleDateFormat("dd MMM yyyy HH:mm:ss Z", Locale.ROOT).parse(text)!! }
                                     catch (e: Exception) {
                                         e.printStackTrace()
                                         Date(0)

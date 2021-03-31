@@ -5,26 +5,53 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.net.URL
 import kotlin.concurrent.thread
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 object TextLoader {
 
-    inline fun load(url: String, crossinline onFinished: (String) -> Unit): Thread = load(URL(url), onFinished)
+    /**
+     * Asynchronously loads the text from the [url].
+     * If it succeeds, the [onFinished] function is run with the result as the parameter
+     *
+     * [url] must start with http:// or https://
+     */
+    @OptIn(ExperimentalContracts::class)
+    inline fun load(
+        url: String,
+        crossinline onFailed: (Exception) -> Unit = {},
+        crossinline onFinished: (String) -> Unit,
+    ): Thread {
+        contract { callsInPlace(onFinished, kotlin.contracts.InvocationKind.AT_MOST_ONCE) }
+        return load(URL(url), onFailed, onFinished)
+    }
 
+    /**
+     * Asynchronously loads the text from the [url].
+     * If it succeeds, the [onFinished] function is run with the result as the parameter
+     *
+     * [url] must start with http:// or https://
+     */
+    @OptIn(ExperimentalContracts::class)
     inline fun load(
         url: URL,
-        crossinline onFinished: (String) -> Unit
-    ): Thread = thread {
-        try {
-            val builder = StringBuilder()
-            var buffer: String?
-            val bufferReader = BufferedReader(InputStreamReader(url.openStream()))
-            while (bufferReader.readLine().also { buffer = it } != null) {
-                builder.append(buffer).append('\n')
+        crossinline onFailed: (Exception) -> Unit = {},
+        crossinline onFinished: (String) -> Unit,
+    ): Thread {
+        contract { callsInPlace(onFinished, kotlin.contracts.InvocationKind.AT_MOST_ONCE) }
+        return thread {
+            try {
+                val builder = StringBuilder()
+                var buffer: String?
+                val bufferReader = BufferedReader(InputStreamReader(url.openStream()))
+                while (bufferReader.readLine().also { buffer = it } != null) {
+                    builder.append(buffer).append('\n')
+                }
+                bufferReader.close()
+                onFinished(builder.toString())
             }
-            bufferReader.close()
-            onFinished(builder.toString())
+            catch (e: IOException) { onFailed(e) }
+            catch (e: Exception) { e.printStackTrace() }
         }
-        catch (e: IOException) {}
-        catch (e: Exception) { e.printStackTrace() }
     }
 }

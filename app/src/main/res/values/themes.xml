@@ -1,5 +1,3 @@
 <resources>
-    <style name="Theme.PosidonLoaderDemo" parent="Theme.AppCompat.DayNight">
-        <item name="colorPrimary">@color/purple_500</item>
-    </style>
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar"/>
 </resources>
