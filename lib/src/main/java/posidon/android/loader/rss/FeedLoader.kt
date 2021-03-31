@@ -154,18 +154,21 @@ object FeedLoader {
                         name.equals("entry", ignoreCase = true) -> isItem = 2
                         isItem == 1 -> when { //RSS
                             name.equals("title", ignoreCase = true) -> title = getText(parser)
-                            name.equals("link", ignoreCase = true) -> link = getText(parser)
+                            name.equals("guid", ignoreCase = true) -> {
+                                val isPermaLink = parser.getAttributeValue(null, "isPermaLink")
+                                if (isPermaLink == null || isPermaLink.toBoolean()) link = getText(parser)
+                            }
+                            name.equals("link", ignoreCase = true) && link == null -> link = getText(parser)
                             name.equals("pubDate", ignoreCase = true) -> {
                                 val text = getText(parser)
-                                    .substringAfter(',')
                                     .replace("GMT", "+0000")
                                     .replace("EDT", "+0000")
                                     .trim()
                                 time = try {
-                                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT).parse(text)!!
+                                    SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.US).parse(text)!!
                                 } catch (e: Exception) {
                                     e.printStackTrace()
-                                    try { SimpleDateFormat("dd MMM yyyy HH:mm:ss Z", Locale.ROOT).parse(text)!! }
+                                    try { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).parse(text)!! }
                                     catch (e: Exception) {
                                         e.printStackTrace()
                                         Date(0)
@@ -203,7 +206,7 @@ object FeedLoader {
                             name.equals("published", ignoreCase = true) ||
                             name.equals("updated", ignoreCase = true) -> {
                                 val text = getText(parser).trim()
-                                val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT)
+                                val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
                                 time = try { format.parse(text)!! } catch (e: Exception) { Date(0) }
                             }
                             img == null && (name.equals("summary", ignoreCase = true) || name.equals("content", ignoreCase = true)) -> {

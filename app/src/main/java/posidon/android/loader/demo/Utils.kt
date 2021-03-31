@@ -1,25 +1,12 @@
 package posidon.android.loader.demo
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.doOnTextChanged
-
-inline fun <T : Activity> ActivityButton(context: Context, name: String, activity: Class<T>): View {
-    return TextView(context).apply {
-        text = name
-        textSize = 36f
-        setOnClickListener {
-            context.startActivity(Intent(context, activity))
-        }
-    }
-}
 
 inline fun TextField(
     context: Context,
