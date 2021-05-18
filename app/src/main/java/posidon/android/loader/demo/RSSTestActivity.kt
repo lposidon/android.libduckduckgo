@@ -3,9 +3,8 @@ package posidon.android.loader.demo
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import posidon.android.loader.TextLoader
-import posidon.android.loader.rss.FeedItem
-import posidon.android.loader.rss.FeedLoader
+import posidon.android.loader.rss.RssItem
+import posidon.android.loader.rss.RssLoader
 
 class RSSTestActivity : AppCompatActivity() {
 
@@ -24,7 +23,7 @@ class RSSTestActivity : AppCompatActivity() {
                             if (!u.startsWith("https://") && !u.startsWith("http://")) {
                                 u = "https://$u"
                             }
-                            FeedLoader.loadFeed(listOf(u), { success: Boolean, items: List<FeedItem> ->
+                            RssLoader.load(listOf(u)) { success: Boolean, items: List<RssItem> ->
                                 if (success) {
                                     runOnUiThread {
                                         data.isVisible = true
@@ -50,6 +49,12 @@ class RSSTestActivity : AppCompatActivity() {
                                                 append('\n')
                                                 append("Source url: ")
                                                 append(it.source.url)
+                                                append('\n')
+                                                append("Source icon: ")
+                                                append(it.source.iconUrl)
+                                                append('\n')
+                                                append("Source color: ")
+                                                append(it.source.accentColor.toString(16))
                                             }
                                         }
                                         err.isVisible = false
@@ -61,7 +66,7 @@ class RSSTestActivity : AppCompatActivity() {
                                         data.isVisible = false
                                     }
                                 }
-                            })
+                            }
                         }
                     ),
                     err,

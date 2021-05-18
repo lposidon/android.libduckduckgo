@@ -13,63 +13,100 @@ import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 import kotlin.math.max
 
-object FeedLoader {
+object RssLoader {
 
     private val pullParserFactory: XmlPullParserFactory = XmlPullParserFactory.newInstance()
     private val endStrings = arrayOf("",
-        "/atom",
-        "/atom.xml",
         "/feed",
         "/feed.xml",
         "/rss",
-        "/rss.xml")
+        "/rss.xml",
+        "/atom",
+        "/atom.xml",
+    )
 
     /**
-     * [maxAgeInDays] if the feed item's age is bigger than this, it won't be included, if [maxAgeInDays] is 0, all feed items are included
+     * Loads the rss content asynchronously
+     *
+     * [feedUrls] A list of all the rss/atom feeds to load
+     * [maxItems] Maximum amount of items to load (if 0, no limit is applied)
+     * [filter] A function to decide whether to include an item or not
+     * [onFinished] The function to handle the loaded data
      */
-    fun loadFeed(
+    inline fun load(
         feedUrls: Collection<String>,
-        onFinished: (success: Boolean, items: List<FeedItem>) -> Unit,
         maxItems: Int = 0,
-        isIncluded: (String, String, Date) -> Boolean = { _, _, _ -> true }
+        noinline filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true },
+        crossinline onFinished: (success: Boolean, items: List<RssItem>) -> Unit,
     ) = thread (isDaemon = true) {
-        val feedItems = ArrayList<FeedItem>()
+        val feedItems = ArrayList<RssItem>()
+        val success = load(feedItems, feedUrls, maxItems, filter)
+        feedItems.trimToSize()
+        onFinished(success, feedItems)
+    }
+
+    /**
+     * Loads the rss content on the current thread
+     *
+     * [feedItems] The place to write the rss data to
+     * [feedUrls] A list of all the rss/atom feeds to load
+     * [maxItems] Maximum amount of items to load (if 0, no limit is applied)
+     * [filter] A function to decide whether to include an item or not
+     * @return Whether the loading was successful or not
+     */
+    fun load(
+        feedItems: MutableList<RssItem>,
+        feedUrls: Collection<String>,
+        maxItems: Int = 0,
+        filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true }
+    ): Boolean {
+        val success = loadFeedInternal(feedUrls, feedItems, filter, maxItems)
+
+        if (maxItems != 0) {
+            if (feedItems.size > maxItems) {
+                repeat(feedItems.size - maxItems) {
+                    feedItems.removeAt(feedItems.lastIndex)
+                }
+            }
+        }
+
+        return success
+    }
+
+    private fun loadFeedInternal(
+        feedUrls: Collection<String>,
+        feedItems: MutableList<RssItem>,
+        filter: (url: String, title: String, time: Date) -> Boolean,
+        maxItems: Int
+    ): Boolean {
         val lock = ReentrantLock()
 
-        val erroredSources = LinkedList<FeedSource>()
+        val erroredSources = LinkedList<RssSource>()
         val threads = LinkedList<Thread>()
         for (u in feedUrls) {
             if (u.isNotEmpty()) {
-                var (url, domain, name) = if (!u.startsWith("http://") && !u.startsWith("https://")) {
-                    val slashI = u.indexOf('/')
-                    val domain = if (slashI != -1) u.substring(0, slashI) else u
-                    Triple("https://$u", "https://$domain", if (domain.startsWith("www.")) {
-                        domain.substring(4)
-                    } else domain)
-                } else {
-                    val slashI = u.indexOf('/', 8)
-                    val domain = if (slashI != -1) u.substring(0, slashI) else u
-                    Triple(u, domain, if (domain.startsWith("www.")) {
-                        domain.substring(4)
-                    } else domain)
-                }
-                if (url.endsWith("/")) {
-                    url = url.substring(0, url.length - 1)
-                }
-                threads.add(thread (isDaemon = true) {
+                val (url, domain, name) = getSourceInfo(u)
+                threads.add(thread(isDaemon = true) {
                     var i = 0
                     while (i < endStrings.size) {
                         try {
                             val newUrl = url + endStrings[i]
                             val connection = URL(newUrl).openConnection()
-                            parseFeed(connection.getInputStream(), FeedSource(name, newUrl, domain), lock, feedItems, isIncluded, maxItems)
+                            parseFeed(
+                                connection.getInputStream(),
+                                RssSource(name, newUrl, domain),
+                                lock,
+                                feedItems,
+                                filter,
+                                maxItems
+                            )
                             i = -1
                             break
                         } catch (e: Exception) {}
                         i++
                     }
                     if (i != -1) {
-                        erroredSources.add(FeedSource(name, url, domain))
+                        erroredSources.add(RssSource(name, url, domain))
                     }
                 })
             }
@@ -77,7 +114,7 @@ object FeedLoader {
 
         var i = 0
         var j: Int
-        var temp: FeedItem
+        var temp: RssItem
 
         val m = System.currentTimeMillis()
         for (thread in threads) {
@@ -100,30 +137,45 @@ object FeedLoader {
             i++
         }
 
-        val success = feedItems.size != 0
-
-        var items: MutableList<FeedItem> = feedItems
-        if (maxItems != 0) {
-            if (items.size > maxItems) {
-                items = items.subList(0, maxItems)
-            }
-        }
 
         for (s in erroredSources) {
             println("Feed source ${s.name} failed")
         }
 
-        onFinished(success, items)
+        return feedItems.size != 0
+    }
+
+    private fun getSourceInfo(url: String): Triple<String, String, String> {
+        val u = if (url.endsWith("/")) {
+            url.substring(0, url.length - 1)
+        } else url
+        return if (u.startsWith("http://") || u.startsWith("https://")) {
+            val slashI = u.indexOf('/', 8)
+            val domain = if (slashI != -1) u.substring(0, slashI) else u
+            Triple(
+                u, domain, if (domain.startsWith("www.")) {
+                    domain.substring(4)
+                } else domain
+            )
+        } else {
+            val slashI = u.indexOf('/')
+            val domain = if (slashI != -1) u.substring(0, slashI) else u
+            Triple(
+                "https://$u", "https://$domain", if (domain.startsWith("www.")) {
+                    domain.substring(4)
+                } else domain
+            )
+        }
     }
 
     @Throws(XmlPullParserException::class, IOException::class)
-    private inline fun parseFeed(inputStream: InputStream, source: FeedSource, lock: ReentrantLock, feedItems: ArrayList<FeedItem>, isIncluded: (String, String, Date) -> Boolean, maxItems: Int) {
+    private inline fun parseFeed(inputStream: InputStream, source: RssSource, lock: ReentrantLock, feedItems: MutableList<RssItem>, filter: (url: String, title: String, time: Date) -> Boolean, maxItems: Int) {
         var title: String? = null
         var link: String? = null
         var img: String? = null
         var time: Date? = null
         var isItem = 0
-        val items = ArrayList<FeedItem>()
+        val items = ArrayList<RssItem>()
         inputStream.use {
             val parser: XmlPullParser = pullParserFactory.newPullParser()
             parser.setInput(inputStream, null)
@@ -136,8 +188,8 @@ object FeedLoader {
                         name.equals("entry", ignoreCase = true) -> {
                             isItem = 0
                             if (title != null && link != null) {
-                                if (isIncluded(link!!, title!!, time!!)) {
-                                    items.add(FeedItem(title!!, link!!, img, time!!, source))
+                                if (filter(link!!, title!!, time!!)) {
+                                    items.add(RssItem(title!!, link!!, img, time!!, source))
                                     if (maxItems != 0 && items.size >= maxItems) {
                                         return@use
                                     }
@@ -222,6 +274,19 @@ object FeedLoader {
                             val new = getText(parser)
                             if (new.isNotBlank()) {
                                 source.name = new
+                            }
+                        }
+                        name.equals("webfeeds:icon", ignoreCase = true) -> {
+                            val new = getText(parser)
+                            if (new.isNotBlank()) {
+                                source.iconUrl = new
+                            }
+                        }
+                        name.equals("webfeeds:accentColor", ignoreCase = true) -> {
+                            val new = getText(parser)
+                            if (new.isNotBlank()) {
+                                val color = new.toInt(16)
+                                source.accentColor = color or 0xff000000.toInt()
                             }
                         }
                     }
