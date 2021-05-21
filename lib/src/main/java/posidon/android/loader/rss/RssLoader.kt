@@ -276,6 +276,18 @@ object RssLoader {
                                 source.name = new
                             }
                         }
+                        name.equals("icon", ignoreCase = true) -> {
+                            val new = getText(parser)
+                            if (new.isNotBlank()) {
+                                source.iconUrl = new
+                            }
+                        }
+                        name.equals("image", ignoreCase = true) -> {
+                            val new = parseInside(parser, "image", "url")
+                            if (!new.isNullOrBlank()) {
+                                source.iconUrl = new
+                            }
+                        }
                         name.equals("webfeeds:icon", ignoreCase = true) -> {
                             val new = getText(parser)
                             if (new.isNotBlank()) {
@@ -296,6 +308,24 @@ object RssLoader {
         lock.lock()
         feedItems.addAll(items)
         lock.unlock()
+    }
+
+    private fun parseInside(parser: XmlPullParser, parentTag: String, childTag: String): String? {
+        loop@ while (parser.next() != XmlPullParser.END_DOCUMENT) {
+            val innerName = parser.name ?: continue
+            when (parser.eventType) {
+                XmlPullParser.END_TAG -> {
+                    if (innerName == parentTag) return null
+                }
+                XmlPullParser.START_TAG -> {
+                    when (innerName) {
+                        childTag -> return getText(parser)
+                    }
+                }
+            }
+            parser.next()
+        }
+        return null
     }
 
     private inline fun getText(parser: XmlPullParser): String {
