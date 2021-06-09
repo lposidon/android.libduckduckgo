@@ -30,6 +30,7 @@ object RssLoader {
      *
      * [feedUrls] A list of all the rss/atom feeds to load
      * [maxItems] Maximum amount of items to load (if 0, no limit is applied)
+     * [doSorting] Whether to sort the feed items by time or not
      * [filter] A function to decide whether to include an item or not
      * [onFinished] The function to handle the loaded data
      */
@@ -52,6 +53,7 @@ object RssLoader {
      * [feedItems] The place to write the rss data to
      * [feedUrls] A list of all the rss/atom feeds to load
      * [maxItems] Maximum amount of items to load (if 0, no limit is applied)
+     * [doSorting] Whether to sort the feed items by time or not
      * [filter] A function to decide whether to include an item or not
      * @return Whether the loading was successful or not
      */
