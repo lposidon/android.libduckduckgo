@@ -36,11 +36,12 @@ object RssLoader {
     inline fun load(
         feedUrls: Collection<String>,
         maxItems: Int = 0,
+        doSorting: Boolean = true,
         noinline filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true },
         crossinline onFinished: (success: Boolean, items: List<RssItem>) -> Unit,
     ) = thread (isDaemon = true) {
         val feedItems = ArrayList<RssItem>()
-        val success = load(feedItems, feedUrls, maxItems, filter)
+        val success = load(feedItems, feedUrls, maxItems, doSorting, filter)
         feedItems.trimToSize()
         onFinished(success, feedItems)
     }
@@ -58,9 +59,10 @@ object RssLoader {
         feedItems: MutableList<RssItem>,
         feedUrls: Collection<String>,
         maxItems: Int = 0,
+        doSorting: Boolean = true,
         filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true }
     ): Boolean {
-        val success = loadFeedInternal(feedUrls, feedItems, filter, maxItems)
+        val success = loadFeedInternal(feedUrls, feedItems, filter, maxItems, doSorting)
 
         if (maxItems != 0) {
             if (feedItems.size > maxItems) {
@@ -77,7 +79,8 @@ object RssLoader {
         feedUrls: Collection<String>,
         feedItems: MutableList<RssItem>,
         filter: (url: String, title: String, time: Date) -> Boolean,
-        maxItems: Int
+        maxItems: Int,
+        doSorting: Boolean
     ): Boolean {
         val lock = ReentrantLock()
 
@@ -124,7 +127,7 @@ object RssLoader {
             }
         }
 
-        while (i < feedItems.size - 1) {
+        if (doSorting) while (i < feedItems.size - 1) {
             j = i + 1
             while (j < feedItems.size) {
                 if (feedItems[i].isBefore(feedItems[j])) {
