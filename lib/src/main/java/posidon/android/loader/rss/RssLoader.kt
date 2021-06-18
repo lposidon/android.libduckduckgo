@@ -40,7 +40,7 @@ object RssLoader {
         doSorting: Boolean = true,
         noinline filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true },
         crossinline onFinished: (success: Boolean, items: List<RssItem>) -> Unit,
-    ) = thread (isDaemon = true) {
+    ) = thread(name = "RssLoader loading thread", isDaemon = true) {
         val feedItems = ArrayList<RssItem>()
         val success = load(feedItems, feedUrls, maxItems, doSorting, filter)
         feedItems.trimToSize()
@@ -91,7 +91,7 @@ object RssLoader {
         for (u in feedUrls) {
             if (u.isNotEmpty()) {
                 val (url, domain, name) = getSourceInfo(u)
-                threads.add(thread(isDaemon = true) {
+                threads.add(thread(name = "RssLoader internal thread", isDaemon = true) {
                     var i = 0
                     while (i < endStrings.size) {
                         try {

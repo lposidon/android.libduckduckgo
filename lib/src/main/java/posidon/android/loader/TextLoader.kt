@@ -16,13 +16,11 @@ object TextLoader {
      *
      * [url] must start with http:// or https://
      */
-    @OptIn(ExperimentalContracts::class)
     inline fun load(
         url: String,
         crossinline onFailed: (Exception) -> Unit = {},
         crossinline onFinished: (String) -> Unit,
     ): Thread {
-        contract { callsInPlace(onFinished, kotlin.contracts.InvocationKind.AT_MOST_ONCE) }
         return load(URL(url), onFailed, onFinished)
     }
 
@@ -32,14 +30,12 @@ object TextLoader {
      *
      * [url] must start with http:// or https://
      */
-    @OptIn(ExperimentalContracts::class)
     inline fun load(
         url: URL,
         crossinline onFailed: (Exception) -> Unit = {},
         crossinline onFinished: (String) -> Unit,
     ): Thread {
-        contract { callsInPlace(onFinished, kotlin.contracts.InvocationKind.AT_MOST_ONCE) }
-        return thread {
+        return thread(name = "TextLoader thread") {
             try {
                 val builder = StringBuilder()
                 var buffer: String?
