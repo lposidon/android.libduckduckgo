@@ -179,6 +179,8 @@ object RssLoader {
         var link: String? = null
         var img: String? = null
         var time: Date? = null
+        var id: String? = null
+        var isPermaLink = false
         var isItem = 0
         val items = ArrayList<RssItem>()
         inputStream.use {
@@ -192,6 +194,9 @@ object RssLoader {
                         name.equals("item", ignoreCase = true) ||
                         name.equals("entry", ignoreCase = true) -> {
                             isItem = 0
+                            if (link == null && isPermaLink) {
+                                link = id
+                            }
                             if (title != null && link != null) {
                                 if (filter(link!!, title!!, time!!)) {
                                     items.add(RssItem(title!!, link!!, img, time!!, source))
@@ -204,6 +209,8 @@ object RssLoader {
                             link = null
                             img = null
                             time = null
+                            id = null
+                            isPermaLink = false
                         }
                     }
                     XmlPullParser.START_TAG -> when {
@@ -212,8 +219,8 @@ object RssLoader {
                         isItem == 1 -> when { //RSS
                             name.equals("title", ignoreCase = true) -> title = getText(parser)
                             name.equals("guid", ignoreCase = true) -> {
-                                val isPermaLink = parser.getAttributeValue(null, "isPermaLink")
-                                if (isPermaLink == null || isPermaLink.toBoolean()) link = getText(parser)
+                                id = getText(parser)
+                                isPermaLink = parser.getAttributeValue(null, "isPermaLink").toBoolean()
                             }
                             name.equals("link", ignoreCase = true) && link == null -> link = getText(parser)
                             name.equals("pubDate", ignoreCase = true) -> {
