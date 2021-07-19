@@ -1,5 +1,7 @@
 package posidon.android.loader.rss
 
+import android.text.Html
+import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
@@ -174,7 +176,7 @@ object RssLoader {
     }
 
     @Throws(XmlPullParserException::class, IOException::class)
-    private inline fun parseFeed(inputStream: InputStream, source: RssSource, lock: ReentrantLock, feedItems: MutableList<RssItem>, filter: (url: String, title: String, time: Date) -> Boolean, maxItems: Int) {
+    private inline fun parseFeed(inputStream: InputStream, source: RssSource, lock: ReentrantLock, feedItems: MutableList<RssItem>, filter: (url: String, title: String, time: Date) -> Boolean, maxItems: Int, ) {
         var title: String? = null
         var link: String? = null
         var img: String? = null
@@ -199,7 +201,8 @@ object RssLoader {
                             }
                             if (title != null && link != null) {
                                 if (filter(link!!, title!!, time!!)) {
-                                    items.add(RssItem(title!!, link!!, img, time!!, source))
+                                    val t = unescapeCharacters(title!!)
+                                    items.add(RssItem(t, link!!, img, time!!, source))
                                     if (maxItems != 0 && items.size >= maxItems) {
                                         return@use
                                     }
@@ -320,6 +323,31 @@ object RssLoader {
         lock.lock()
         feedItems.addAll(items)
         lock.unlock()
+    }
+
+    private fun unescapeCharacters(title: String): String {
+        return buildString {
+            var i = 0
+            val l = title.length
+            while (i < l) {
+                if (title[i] == '&') {
+                    i++
+                    if (title[i] == '#') {
+                        i++
+                        var u = 0
+                        while (i < l && title[i] != ';') {
+                            val d = title[i].digitToIntOrNull() ?: break
+                            u = u * 10 + d
+                            i++
+                        }
+                        append(u.toChar())
+                    }
+                } else {
+                    append(title[i])
+                }
+                i++
+            }
+        }
     }
 
     private fun parseInside(parser: XmlPullParser, parentTag: String, childTag: String): String? {
