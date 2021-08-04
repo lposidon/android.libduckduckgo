@@ -1,12 +1,10 @@
-package posidon.android.loader
+package posidon.android.loader.text
 
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.net.URL
 import kotlin.concurrent.thread
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 
 object TextLoader {
 

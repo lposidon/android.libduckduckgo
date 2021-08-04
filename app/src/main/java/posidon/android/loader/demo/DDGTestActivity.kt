@@ -1,11 +1,8 @@
 package posidon.android.loader.demo
 
 import android.os.Bundle
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import posidon.android.loader.DuckInstantAnswer
-import posidon.android.loader.TextLoader
+import posidon.android.loader.duckduckgo.DuckInstantAnswer
 
 class DDGTestActivity : AppCompatActivity() {
 
@@ -15,6 +12,7 @@ class DDGTestActivity : AppCompatActivity() {
         val sourceName = Text(this)
         val sourceUrl = Text(this)
         val description = Text(this)
+        val infobox = Text(this)
         val searchUrl = Text(this)
         val data = Text(this)
         val textField = TextField(this, hint = "search...", textSize = 20f)
@@ -25,11 +23,20 @@ class DDGTestActivity : AppCompatActivity() {
                         textField,
                         Button(this, "go") {
                             DuckInstantAnswer.load(textField.text.toString(), "posidon.android.loader") { answer ->
+                                val infoboxText = answer.infoTable?.joinToString("\n") {
+                                    buildString {
+                                        appendLine(it.dataType)
+                                        appendLine(it.label)
+                                        appendLine(it.value)
+                                        appendLine(it.wikiOrder)
+                                    }
+                                }
                                 runOnUiThread {
                                     title.text = answer.title
                                     sourceName.text = answer.sourceName
                                     sourceUrl.text = answer.sourceUrl
                                     description.text = answer.description
+                                    infobox.text = infoboxText
                                     searchUrl.text = answer.searchUrl
                                     data.text = answer.rawData
                                 }
@@ -41,6 +48,7 @@ class DDGTestActivity : AppCompatActivity() {
                     Row(this, Text(this, "Answer source name: "), sourceName),
                     Row(this, Text(this, "Answer source url: "), sourceUrl),
                     Row(this, Text(this, "Answer: "), description),
+                    Row(this, Text(this, "Infobox: "), infobox),
                     Text(this, "Data:"),
                     data
                 )

@@ -3,9 +3,7 @@ package posidon.android.loader.demo
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import posidon.android.loader.DuckInstantAnswer
-import posidon.android.loader.TextLoader
-import java.lang.Exception
+import posidon.android.loader.text.TextLoader
 
 class TextLoadingTestActivity : AppCompatActivity() {
 
