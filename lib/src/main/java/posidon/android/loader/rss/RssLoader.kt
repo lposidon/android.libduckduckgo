@@ -1,7 +1,5 @@
 package posidon.android.loader.rss
 
-import android.text.Html
-import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
@@ -41,12 +39,12 @@ object RssLoader {
         maxItems: Int = 0,
         doSorting: Boolean = true,
         noinline filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true },
-        crossinline onFinished: (success: Boolean, items: List<RssItem>) -> Unit,
+        crossinline onFinished: (erroredSources: List<RssSource>, items: List<RssItem>) -> Unit,
     ) = thread(name = "RssLoader loading thread", isDaemon = true) {
         val feedItems = ArrayList<RssItem>()
-        val success = load(feedItems, feedUrls, maxItems, doSorting, filter)
+        val erroredSources = load(feedItems, feedUrls, maxItems, doSorting, filter)
         feedItems.trimToSize()
-        onFinished(success, feedItems)
+        onFinished(erroredSources, feedItems)
     }
 
     /**
@@ -65,8 +63,12 @@ object RssLoader {
         maxItems: Int = 0,
         doSorting: Boolean = true,
         filter: (url: String, title: String, time: Date) -> Boolean = { _, _, _ -> true }
-    ): Boolean {
-        val success = loadFeedInternal(feedUrls, feedItems, filter, maxItems, doSorting)
+    ): List<RssSource> {
+        val erroredSources = loadFeedInternal(feedUrls, feedItems, filter, maxItems, doSorting)
+
+        for (s in erroredSources) {
+            println("Feed source ${s.name} failed")
+        }
 
         if (maxItems != 0) {
             if (feedItems.size > maxItems) {
@@ -76,7 +78,7 @@ object RssLoader {
             }
         }
 
-        return success
+        return erroredSources
     }
 
     private fun loadFeedInternal(
@@ -85,7 +87,7 @@ object RssLoader {
         filter: (url: String, title: String, time: Date) -> Boolean,
         maxItems: Int,
         doSorting: Boolean
-    ): Boolean {
+    ): LinkedList<RssSource> {
         val lock = ReentrantLock()
 
         val erroredSources = LinkedList<RssSource>()
@@ -109,7 +111,9 @@ object RssLoader {
                             )
                             i = -1
                             break
-                        } catch (e: Exception) {}
+                        }
+                        catch (e: IOException) {}
+                        catch (e: Exception) { e.printStackTrace() }
                         i++
                     }
                     if (i != -1) {
@@ -144,12 +148,7 @@ object RssLoader {
             i++
         }
 
-
-        for (s in erroredSources) {
-            println("Feed source ${s.name} failed")
-        }
-
-        return feedItems.size != 0
+        return erroredSources
     }
 
     private fun getSourceInfo(url: String): Triple<String, String, String> {
@@ -176,7 +175,14 @@ object RssLoader {
     }
 
     @Throws(XmlPullParserException::class, IOException::class)
-    private inline fun parseFeed(inputStream: InputStream, source: RssSource, lock: ReentrantLock, feedItems: MutableList<RssItem>, filter: (url: String, title: String, time: Date) -> Boolean, maxItems: Int, ) {
+    private inline fun parseFeed(
+        inputStream: InputStream,
+        source: RssSource,
+        lock: ReentrantLock,
+        feedItems: MutableList<RssItem>,
+        filter: (url: String, title: String, time: Date) -> Boolean,
+        maxItems: Int,
+    ) {
         var title: String? = null
         var link: String? = null
         var img: String? = null
@@ -298,7 +304,7 @@ object RssLoader {
                             }
                         }
                         name.equals("image", ignoreCase = true) -> {
-                            val new = parseInside(parser, "image", "url")
+                            val new = parseInside(parser, name, "url")
                             if (!new.isNullOrBlank()) {
                                 source.iconUrl = new
                             }
@@ -352,18 +358,15 @@ object RssLoader {
 
     private fun parseInside(parser: XmlPullParser, parentTag: String, childTag: String): String? {
         loop@ while (parser.next() != XmlPullParser.END_DOCUMENT) {
-            val innerName = parser.name ?: continue
+            val name = parser.name ?: continue
             when (parser.eventType) {
                 XmlPullParser.END_TAG -> {
-                    if (innerName == parentTag) return null
+                    if (name == parentTag) return null
                 }
                 XmlPullParser.START_TAG -> {
-                    when (innerName) {
-                        childTag -> return getText(parser)
-                    }
+                    if (name == childTag) return getText(parser)
                 }
             }
-            parser.next()
         }
         return null
     }

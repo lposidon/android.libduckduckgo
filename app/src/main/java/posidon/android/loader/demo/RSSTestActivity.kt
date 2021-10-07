@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import posidon.android.loader.rss.RssItem
 import posidon.android.loader.rss.RssLoader
+import posidon.android.loader.rss.RssSource
 
 class RSSTestActivity : AppCompatActivity() {
 
@@ -23,7 +24,8 @@ class RSSTestActivity : AppCompatActivity() {
                             if (!u.startsWith("https://") && !u.startsWith("http://")) {
                                 u = "https://$u"
                             }
-                            RssLoader.load(listOf(u)) { success: Boolean, items: List<RssItem> ->
+                            RssLoader.load(listOf(u)) { erroredSources: List<RssSource>, items: List<RssItem> ->
+                                val success = erroredSources.isEmpty()
                                 if (success) {
                                     runOnUiThread {
                                         data.isVisible = true
@@ -62,7 +64,7 @@ class RSSTestActivity : AppCompatActivity() {
                                 } else {
                                     runOnUiThread {
                                         err.isVisible = true
-                                        err.text = "Error"
+                                        err.text = "${System.currentTimeMillis()} Errors (${erroredSources.size}): \n\t${erroredSources.joinToString("\n\t", transform = RssSource::url)}"
                                         data.isVisible = false
                                     }
                                 }
