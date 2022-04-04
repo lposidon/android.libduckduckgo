@@ -1,10 +1,11 @@
-package posidon.android.loader.demo
+package io.posidon.android.libduckduckgo.demo
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import posidon.android.loader.duckduckgo.DuckInstantAnswer
+import io.posidon.android.libduckduckgo.DuckDuckGo
+import io.posidon.android.libduckduckgo.InstantAnswer
 
-class DDGTestActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -15,14 +16,15 @@ class DDGTestActivity : AppCompatActivity() {
         val infobox = Text(this)
         val searchUrl = Text(this)
         val data = Text(this)
-        val textField = TextField(this, hint = "search...", textSize = 20f)
+        val textField = TextField(this, hint = "Search...", textSize = 20f)
         setContentView(
             Scrollable(this,
                 Column(this,
                     Row(this,
                         textField,
                         Button(this, "go") {
-                            DuckInstantAnswer.load(textField.text.toString(), "posidon.android.loader") { answer ->
+                            val q = textField.text.toString()
+                            DuckDuckGo.instantAnswer(q, BuildConfig.APPLICATION_ID) { answer ->
                                 val infoboxText = answer.infoTable?.joinToString("\n") {
                                     buildString {
                                         appendLine(it.dataType)
@@ -37,7 +39,7 @@ class DDGTestActivity : AppCompatActivity() {
                                     sourceUrl.text = answer.sourceUrl
                                     description.text = answer.description
                                     infobox.text = infoboxText
-                                    searchUrl.text = answer.searchUrl
+                                    searchUrl.text = DuckDuckGo.searchURL(q, BuildConfig.APPLICATION_ID)
                                     data.text = answer.rawData
                                 }
                             }

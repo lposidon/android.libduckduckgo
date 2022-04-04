@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="posidon.android.loader.demo">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.posidon.android.libduckduckgo.demo">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:allowBackup="true"
@@ -17,9 +20,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".DDGTestActivity"/>
-        <activity android:name=".RSSTestActivity"/>
-        <activity android:name=".TextLoadingTestActivity"/>
     </application>
 
 </manifest>

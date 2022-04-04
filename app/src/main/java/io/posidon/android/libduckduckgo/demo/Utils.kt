@@ -1,4 +1,4 @@
-package posidon.android.loader.demo
+package io.posidon.android.libduckduckgo.demo
 
 import android.content.Context
 import android.view.View

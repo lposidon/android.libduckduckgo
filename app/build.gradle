@@ -8,7 +8,7 @@ android {
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        applicationId "posidon.android.loader.demo"
+        applicationId "io.posidon.android.libduckduckgo.demo"
         minSdkVersion 21
         targetSdkVersion 31
         versionCode 1

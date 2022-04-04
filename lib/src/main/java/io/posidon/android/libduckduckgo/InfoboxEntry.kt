@@ -1,4 +1,4 @@
-package posidon.android.loader.duckduckgo
+package io.posidon.android.libduckduckgo
 
 data class InfoboxEntry(
     val dataType: String,
